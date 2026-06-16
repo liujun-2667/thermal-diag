@@ -39,8 +39,8 @@ def show_report_management():
                 'diagnosis_result': image_data[14],
                 'relative_temp': image_data[15],
                 'hotspots': image_data[16],
-                'recommendation': image_data.get('recommendation', ''),
-                'time_limit': image_data.get('time_limit', '')
+                'recommendation': image_data[17] if len(image_data) > 17 else '',
+                'time_limit': image_data[18] if len(image_data) > 18 else ''
             }
             
             report_path = generate_report(image_dict, history_list)
@@ -77,8 +77,8 @@ def show_report_management():
                     'diagnosis_result': image_data[14],
                     'relative_temp': image_data[15],
                     'hotspots': image_data[16],
-                    'recommendation': image_data.get('recommendation', ''),
-                    'time_limit': image_data.get('time_limit', '')
+                    'recommendation': image_data[17] if len(image_data) > 17 else '',
+                    'time_limit': image_data[18] if len(image_data) > 18 else ''
                 })
         
         report_path = generate_batch_report(images_data)

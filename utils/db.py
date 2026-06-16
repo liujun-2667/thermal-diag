@@ -39,6 +39,8 @@ def init_db():
             diagnosis_result TEXT,
             relative_temp REAL,
             hotspots TEXT,
+            recommendation TEXT,
+            time_limit TEXT,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP
         )
     ''')
@@ -76,6 +78,15 @@ def init_db():
         )
     ''')
     
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS warning_rules (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            device_name TEXT,
+            threshold REAL,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
     conn.commit()
     conn.close()
 
@@ -86,14 +97,16 @@ def insert_thermal_image(data):
         INSERT INTO thermal_images (
             image_path, device_name, device_type, location, 
             capture_time, ambient_temp, load_rate, tmax, tmin, tavg,
-            delta_t, defect_level, diagnosis_result, relative_temp, hotspots
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            delta_t, defect_level, diagnosis_result, relative_temp, hotspots,
+            recommendation, time_limit
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (
         data['image_path'], data['device_name'], data['device_type'],
         data['location'], data['capture_time'], data['ambient_temp'],
         data['load_rate'], data['tmax'], data['tmin'], data['tavg'],
         data['delta_t'], data['defect_level'], data['diagnosis_result'],
-        data['relative_temp'], data['hotspots']
+        data['relative_temp'], data['hotspots'],
+        data.get('recommendation', ''), data.get('time_limit', '')
     ))
     conn.commit()
     image_id = cursor.lastrowid
@@ -194,4 +207,20 @@ def get_statistics():
     
     conn.close()
     return stats
+
+def save_warning_rule(device_name, threshold):
+    conn = sqlite3.connect(DATABASE_PATH)
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM warning_rules WHERE device_name = ?', (device_name,))
+    cursor.execute('INSERT INTO warning_rules (device_name, threshold) VALUES (?, ?)', (device_name, threshold))
+    conn.commit()
+    conn.close()
+
+def get_warning_rule(device_name):
+    conn = sqlite3.connect(DATABASE_PATH)
+    cursor = conn.cursor()
+    cursor.execute('SELECT threshold FROM warning_rules WHERE device_name = ?', (device_name,))
+    result = cursor.fetchone()
+    conn.close()
+    return result[0] if result else None
 

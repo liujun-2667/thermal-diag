@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+from datetime import datetime
 from utils.db import get_all_images
 from config import DEVICE_TYPES
 
@@ -14,7 +15,7 @@ def show_image_browser():
     
     st.subheader('筛选条件')
     
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
     
     with col1:
         device_type_filter = st.selectbox('设备类型', ['全部'] + DEVICE_TYPES)
@@ -24,6 +25,9 @@ def show_image_browser():
     
     with col3:
         defect_level_filter = st.selectbox('缺陷等级', ['全部', '无缺陷', '一般缺陷', '严重缺陷', '紧急缺陷'])
+    
+    with col4:
+        date_range = st.date_input('日期范围', value=[datetime.now() - pd.Timedelta(days=30), datetime.now()])
     
     filtered_df = images_df
     
@@ -36,7 +40,17 @@ def show_image_browser():
     if defect_level_filter != '全部':
         filtered_df = filtered_df[filtered_df['defect_level'] == defect_level_filter]
     
+    if len(date_range) == 2:
+        start_date = date_range[0].strftime('%Y-%m-%d')
+        end_date = date_range[1].strftime('%Y-%m-%d')
+        filtered_df['capture_date'] = pd.to_datetime(filtered_df['capture_time']).dt.date
+        filtered_df = filtered_df[
+            (pd.to_datetime(filtered_df['capture_time']).dt.date >= date_range[0]) &
+            (pd.to_datetime(filtered_df['capture_time']).dt.date <= date_range[1])
+        ]
+    
     st.subheader('图像列表')
+    st.write(f'共找到 {len(filtered_df)} 条记录')
     
     for _, row in filtered_df.iterrows():
         with st.expander(f"{row['device_name']} - {row['capture_time']}"):

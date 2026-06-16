@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-from utils.db import get_all_images, get_images_by_device
+from utils.db import get_all_images, get_images_by_device, save_warning_rule, get_warning_rule
 
 def show_trend_analysis():
     st.title('趋势分析与预警')
@@ -54,6 +54,10 @@ def show_trend_analysis():
         st.dataframe(display_df)
         
         st.subheader('预警规则设置')
-        custom_threshold = st.number_input('自定义温升预警阈值(K)', value=30.0)
+        saved_threshold = get_warning_rule(selected_device)
+        default_threshold = saved_threshold if saved_threshold is not None else 30.0
+        custom_threshold = st.number_input('自定义温升预警阈值(K)', value=default_threshold)
+        
         if st.button('保存预警规则'):
+            save_warning_rule(selected_device, custom_threshold)
             st.success(f'预警规则已保存: 温升超过 {custom_threshold}K 时触发预警')

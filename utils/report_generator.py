@@ -3,32 +3,67 @@ import os
 from datetime import datetime
 from PIL import Image
 import io
+import sys
 
 class ThermalReport(FPDF):
     def __init__(self, logo_path=None):
         super().__init__()
         self.logo_path = logo_path
         self.set_auto_page_break(auto=True, margin=15)
+        self._add_chinese_font()
+    
+    def _add_chinese_font(self):
+        font_paths = [
+            'C:/Windows/Fonts/simhei.ttf',
+            'C:/Windows/Fonts/simsun.ttc',
+            '/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc',
+            '/Library/Fonts/Songti.ttc'
+        ]
+        
+        for font_path in font_paths:
+            if os.path.exists(font_path):
+                self.add_font('Chinese', '', font_path)
+                self.chinese_font_available = True
+                return
+        
+        self.chinese_font_available = False
     
     def header(self):
         if self.logo_path and os.path.exists(self.logo_path):
             self.image(self.logo_path, 10, 8, 33)
         
-        self.set_font('Arial', 'B', 16)
+        if self.chinese_font_available:
+            self.set_font('Chinese', 'B', 16)
+        else:
+            self.set_font('Arial', 'B', 16)
         self.cell(0, 10, '电力设备红外热像分析报告', 0, 1, 'C')
-        self.set_font('Arial', '', 10)
+        
+        if self.chinese_font_available:
+            self.set_font('Chinese', '', 10)
+        else:
+            self.set_font('Arial', '', 10)
         self.cell(0, 5, f'报告生成时间: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}', 0, 1, 'R')
         self.ln(10)
     
     def footer(self):
         self.set_y(-15)
-        self.set_font('Arial', 'I', 8)
+        if self.chinese_font_available:
+            self.set_font('Chinese', 'I', 8)
+        else:
+            self.set_font('Arial', 'I', 8)
         self.cell(0, 10, f'第 {self.page_no()} 页', 0, 0, 'C')
     
     def add_device_info(self, info):
-        self.set_font('Arial', 'B', 12)
+        if self.chinese_font_available:
+            self.set_font('Chinese', 'B', 12)
+        else:
+            self.set_font('Arial', 'B', 12)
         self.cell(0, 10, '设备基本信息', 0, 1)
-        self.set_font('Arial', '', 10)
+        
+        if self.chinese_font_available:
+            self.set_font('Chinese', '', 10)
+        else:
+            self.set_font('Arial', '', 10)
         
         info_lines = [
             f"设备名称: {info.get('device_name', '')}",
@@ -44,7 +79,10 @@ class ThermalReport(FPDF):
         self.ln(5)
     
     def add_image(self, image_path, labeled=False):
-        self.set_font('Arial', 'B', 12)
+        if self.chinese_font_available:
+            self.set_font('Chinese', 'B', 12)
+        else:
+            self.set_font('Arial', 'B', 12)
         title = '标注热像图' if labeled else '红外热像原图'
         self.cell(0, 10, title, 0, 1)
         
@@ -62,9 +100,16 @@ class ThermalReport(FPDF):
             self.ln(new_height + 5)
     
     def add_temp_stats(self, stats):
-        self.set_font('Arial', 'B', 12)
+        if self.chinese_font_available:
+            self.set_font('Chinese', 'B', 12)
+        else:
+            self.set_font('Arial', 'B', 12)
         self.cell(0, 10, '温度分布统计', 0, 1)
-        self.set_font('Arial', '', 10)
+        
+        if self.chinese_font_available:
+            self.set_font('Chinese', '', 10)
+        else:
+            self.set_font('Arial', '', 10)
         
         stats_lines = [
             f"最高温度 (Tmax): {stats.get('tmax', ''):.1f}°C",
@@ -78,9 +123,16 @@ class ThermalReport(FPDF):
         self.ln(5)
     
     def add_diagnosis(self, diagnosis):
-        self.set_font('Arial', 'B', 12)
+        if self.chinese_font_available:
+            self.set_font('Chinese', 'B', 12)
+        else:
+            self.set_font('Arial', 'B', 12)
         self.cell(0, 10, '缺陷判定结论', 0, 1)
-        self.set_font('Arial', '', 10)
+        
+        if self.chinese_font_available:
+            self.set_font('Chinese', '', 10)
+        else:
+            self.set_font('Arial', '', 10)
         
         self.cell(0, 6, f"缺陷等级: {diagnosis.get('defect_level', '')}", 0, 1)
         self.cell(0, 6, f"判定依据: {diagnosis.get('criteria', '')}", 0, 1)
@@ -92,9 +144,16 @@ class ThermalReport(FPDF):
         if not hotspots:
             return
         
-        self.set_font('Arial', 'B', 12)
+        if self.chinese_font_available:
+            self.set_font('Chinese', 'B', 12)
+        else:
+            self.set_font('Arial', 'B', 12)
         self.cell(0, 10, '热点区域信息', 0, 1)
-        self.set_font('Arial', '', 10)
+        
+        if self.chinese_font_available:
+            self.set_font('Chinese', '', 10)
+        else:
+            self.set_font('Arial', '', 10)
         
         for i, hotspot in enumerate(hotspots, 1):
             self.cell(0, 6, f"热点 {i}:", 0, 1)
@@ -108,9 +167,16 @@ class ThermalReport(FPDF):
         if not history or len(history) < 2:
             return
         
-        self.set_font('Arial', 'B', 12)
+        if self.chinese_font_available:
+            self.set_font('Chinese', 'B', 12)
+        else:
+            self.set_font('Arial', 'B', 12)
         self.cell(0, 10, '历史趋势对比(最近5次)', 0, 1)
-        self.set_font('Arial', '', 10)
+        
+        if self.chinese_font_available:
+            self.set_font('Chinese', '', 10)
+        else:
+            self.set_font('Arial', '', 10)
         
         self.cell(20, 6, '序号', 1, 0, 'C')
         self.cell(35, 6, '检测时间', 1, 0, 'C')
@@ -170,7 +236,10 @@ def generate_batch_report(images_data, logo_path=None, output_path=None):
     
     for i, image_data in enumerate(images_data, 1):
         report.add_page()
-        report.set_font('Arial', 'B', 14)
+        if report.chinese_font_available:
+            report.set_font('Chinese', 'B', 14)
+        else:
+            report.set_font('Arial', 'B', 14)
         report.cell(0, 10, f'=== 第 {i} 份检测报告 ===', 0, 1, 'C')
         report.ln(5)
         
