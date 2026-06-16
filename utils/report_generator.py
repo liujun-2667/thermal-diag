@@ -4,6 +4,7 @@ from datetime import datetime
 from PIL import Image
 import io
 import sys
+import PyPDF2
 
 class ThermalReport(FPDF):
     def __init__(self, logo_path=None):
@@ -427,3 +428,24 @@ def generate_compare_report(image1_data, image2_data, diff_image_path=None, diff
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     report.output(output_path)
     return output_path
+
+def append_compare_to_report(existing_report_path, image1_data, image2_data, 
+                            diff_image_path=None, diff_stats=None, time_interval=None):
+    compare_pdf_path = os.path.join('reports', f"compare_temp_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf")
+    
+    compare_report = CompareReport()
+    compare_report.add_page()
+    compare_report.add_compare_section(image1_data, image2_data, diff_image_path, diff_stats, time_interval)
+    compare_report.output(compare_pdf_path)
+    
+    merger = PyPDF2.PdfMerger()
+    merger.append(existing_report_path)
+    merger.append(compare_pdf_path)
+    
+    merged_path = existing_report_path.replace('.pdf', '_with_compare.pdf')
+    merger.write(merged_path)
+    merger.close()
+    
+    os.remove(compare_pdf_path)
+    
+    return merged_path

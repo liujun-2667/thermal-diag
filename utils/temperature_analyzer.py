@@ -132,10 +132,10 @@ def generate_diff_heatmap(temp_matrix1, temp_matrix2):
         for x in range(diff_matrix.shape[1]):
             val = normalized_diff[y, x]
             if val < 0.5:
-                blue_intensity = int(255 * (1 - 2 * (0.5 - val)))
+                blue_intensity = int(255 * (1 - val / 0.5))
                 diff_image[y, x] = (0, 0, blue_intensity)
             else:
-                red_intensity = int(255 * (2 * (val - 0.5)))
+                red_intensity = int(255 * ((val - 0.5) / 0.5))
                 diff_image[y, x] = (red_intensity, 0, 0)
     
     return diff_image, max_diff, min_diff
