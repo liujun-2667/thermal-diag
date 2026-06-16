@@ -275,3 +275,155 @@ def generate_batch_report(images_data, logo_path=None, output_path=None):
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     report.output(output_path)
     return output_path
+
+class CompareReport(ThermalReport):
+    def add_compare_section(self, image1_data, image2_data, diff_image_path=None, diff_stats=None, time_interval=None):
+        if self.chinese_font_available:
+            self.set_font('Chinese', 'B', 14)
+        else:
+            self.set_font('Arial', 'B', 14)
+        self.cell(0, 10, '对比分析', 0, 1, 'C')
+        self.ln(10)
+        
+        if self.chinese_font_available:
+            self.set_font('Chinese', 'B', 12)
+        else:
+            self.set_font('Arial', 'B', 12)
+        self.cell(0, 10, '一、对比概览', 0, 1)
+        self.ln(5)
+        
+        if self.chinese_font_available:
+            self.set_font('Chinese', '', 10)
+        else:
+            self.set_font('Arial', '', 10)
+        
+        self.cell(0, 6, f"对比类型: {'时间对比' if time_interval else '设备对比'}", 0, 1)
+        if time_interval:
+            self.cell(0, 6, f"检测时间间隔: {time_interval}", 0, 1)
+        self.cell(0, 6, f"设备1: {image1_data.get('device_name', '')}", 0, 1)
+        self.cell(0, 6, f"设备2: {image2_data.get('device_name', '')}", 0, 1)
+        self.ln(5)
+        
+        if self.chinese_font_available:
+            self.set_font('Chinese', 'B', 12)
+        else:
+            self.set_font('Arial', 'B', 12)
+        self.cell(0, 10, '二、温度对比表格', 0, 1)
+        self.ln(5)
+        
+        if self.chinese_font_available:
+            self.set_font('Chinese', '', 10)
+        else:
+            self.set_font('Arial', '', 10)
+        
+        self.cell(30, 6, '指标', 1, 0, 'C')
+        self.cell(35, 6, '检测1', 1, 0, 'C')
+        self.cell(35, 6, '检测2', 1, 0, 'C')
+        self.cell(25, 6, '差值', 1, 1, 'C')
+        
+        metrics = [
+            ('最高温度', 'tmax', '°C'),
+            ('最低温度', 'tmin', '°C'),
+            ('平均温度', 'tavg', '°C'),
+            ('温升', 'delta_t', 'K')
+        ]
+        
+        for name, key, unit in metrics:
+            val1 = image1_data.get(key, 0)
+            val2 = image2_data.get(key, 0)
+            diff = val2 - val1
+            self.cell(30, 6, name, 1, 0, 'C')
+            self.cell(35, 6, f"{val1:.1f}{unit}", 1, 0, 'C')
+            self.cell(35, 6, f"{val2:.1f}{unit}", 1, 0, 'C')
+            self.cell(25, 6, f"{diff:+.1f}", 1, 1, 'C')
+        
+        self.ln(5)
+        
+        self.cell(30, 6, '缺陷等级', 1, 0, 'C')
+        level1 = image1_data.get('defect_level', '无')
+        level2 = image2_data.get('defect_level', '无')
+        self.cell(35, 6, level1, 1, 0, 'C')
+        self.cell(35, 6, level2, 1, 0, 'C')
+        
+        level_order = {'无缺陷': 0, '一般缺陷': 1, '严重缺陷': 2, '紧急缺陷': 3}
+        l1 = level_order.get(level1, 0)
+        l2 = level_order.get(level2, 0)
+        if l2 > l1:
+            change = '升级'
+        elif l2 < l1:
+            change = '降级'
+        else:
+            change = '不变'
+        self.cell(25, 6, change, 1, 1, 'C')
+        
+        self.ln(10)
+        
+        if self.chinese_font_available:
+            self.set_font('Chinese', 'B', 12)
+        else:
+            self.set_font('Arial', 'B', 12)
+        self.cell(0, 10, '三、热像图对比', 0, 1)
+        self.ln(5)
+        
+        if self.chinese_font_available:
+            self.set_font('Chinese', '', 10)
+        else:
+            self.set_font('Arial', '', 10)
+        
+        img1_path = image1_data.get('image_path', '')
+        img2_path = image2_data.get('image_path', '')
+        
+        if os.path.exists(img1_path) and os.path.exists(img2_path):
+            img1 = Image.open(img1_path)
+            img2 = Image.open(img2_path)
+            
+            max_width = (self.w - 40) / 2
+            max_height = 100
+            
+            ratio1 = min(max_width / img1.width, max_height / img1.height)
+            ratio2 = min(max_width / img2.width, max_height / img2.height)
+            
+            self.cell(max_width, 6, '检测1', 0, 0, 'C')
+            self.cell(max_width, 6, '检测2', 0, 1, 'C')
+            
+            self.image(img1_path, x=20, w=img1.width * ratio1)
+            self.image(img2_path, x=20 + max_width, w=img2.width * ratio2)
+            self.ln(max_height + 10)
+        
+        if diff_image_path and os.path.exists(diff_image_path):
+            if self.chinese_font_available:
+                self.set_font('Chinese', 'B', 12)
+            else:
+                self.set_font('Arial', 'B', 12)
+            self.cell(0, 10, '四、差异热力图', 0, 1)
+            self.ln(5)
+            
+            if self.chinese_font_available:
+                self.set_font('Chinese', '', 10)
+            else:
+                self.set_font('Arial', '', 10)
+            
+            if diff_stats:
+                self.cell(0, 6, f"最大升温值: {diff_stats.get('max_diff', 0):.1f}°C", 0, 1)
+                self.cell(0, 6, f"最大降温值: {diff_stats.get('min_diff', 0):.1f}°C", 0, 1)
+                self.ln(5)
+            
+            diff_img = Image.open(diff_image_path)
+            max_width = self.w - 40
+            max_height = 120
+            ratio = min(max_width / diff_img.width, max_height / diff_img.height)
+            self.image(diff_image_path, x=(self.w - diff_img.width * ratio) / 2, w=diff_img.width * ratio)
+            self.ln(max_height + 10)
+
+def generate_compare_report(image1_data, image2_data, diff_image_path=None, diff_stats=None, 
+                            time_interval=None, logo_path=None, output_path=None):
+    report = CompareReport(logo_path)
+    report.add_page()
+    report.add_compare_section(image1_data, image2_data, diff_image_path, diff_stats, time_interval)
+    
+    if output_path is None:
+        output_path = os.path.join('reports', f"compare_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf")
+    
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    report.output(output_path)
+    return output_path

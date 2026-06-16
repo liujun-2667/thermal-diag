@@ -112,3 +112,30 @@ def calculate_relative_temp(temp_matrix, hotspot_center, reference_point=None):
         return 0
     
     return (t1 - t2) / t1 * 100
+
+def generate_diff_heatmap(temp_matrix1, temp_matrix2):
+    diff_matrix = temp_matrix2 - temp_matrix1
+    
+    max_diff = np.max(diff_matrix)
+    min_diff = np.min(diff_matrix)
+    
+    max_abs = max(abs(max_diff), abs(min_diff))
+    
+    if max_abs == 0:
+        normalized_diff = np.zeros_like(diff_matrix)
+    else:
+        normalized_diff = (diff_matrix + max_abs) / (2 * max_abs)
+    
+    diff_image = np.zeros((diff_matrix.shape[0], diff_matrix.shape[1], 3), dtype=np.uint8)
+    
+    for y in range(diff_matrix.shape[0]):
+        for x in range(diff_matrix.shape[1]):
+            val = normalized_diff[y, x]
+            if val < 0.5:
+                blue_intensity = int(255 * (1 - 2 * (0.5 - val)))
+                diff_image[y, x] = (0, 0, blue_intensity)
+            else:
+                red_intensity = int(255 * (2 * (val - 0.5)))
+                diff_image[y, x] = (red_intensity, 0, 0)
+    
+    return diff_image, max_diff, min_diff

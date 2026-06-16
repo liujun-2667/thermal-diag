@@ -224,3 +224,40 @@ def get_warning_rule(device_name):
     conn.close()
     return result[0] if result else None
 
+def get_all_devices():
+    conn = sqlite3.connect(DATABASE_PATH)
+    query = 'SELECT DISTINCT device_name, device_type, location FROM thermal_images ORDER BY device_name'
+    df = pd.read_sql_query(query, conn)
+    conn.close()
+    return df
+
+def get_locations():
+    conn = sqlite3.connect(DATABASE_PATH)
+    query = 'SELECT DISTINCT location FROM thermal_images ORDER BY location'
+    df = pd.read_sql_query(query, conn)
+    conn.close()
+    return df['location'].tolist()
+
+def get_devices_by_location(location):
+    conn = sqlite3.connect(DATABASE_PATH)
+    query = 'SELECT DISTINCT device_name, device_type FROM thermal_images WHERE location = ? ORDER BY device_name'
+    df = pd.read_sql_query(query, conn, params=(location,))
+    conn.close()
+    return df
+
+def get_devices_by_type(device_type):
+    conn = sqlite3.connect(DATABASE_PATH)
+    query = 'SELECT DISTINCT device_name FROM thermal_images WHERE device_type = ? ORDER BY device_name'
+    df = pd.read_sql_query(query, conn, params=(device_type,))
+    conn.close()
+    return df['device_name'].tolist()
+
+def get_latest_image_by_device(device_name):
+    conn = sqlite3.connect(DATABASE_PATH)
+    query = 'SELECT * FROM thermal_images WHERE device_name = ? ORDER BY capture_time DESC LIMIT 1'
+    cursor = conn.cursor()
+    cursor.execute(query, (device_name,))
+    result = cursor.fetchone()
+    conn.close()
+    return result
+
