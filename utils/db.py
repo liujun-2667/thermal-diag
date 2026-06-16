@@ -1,5 +1,6 @@
 import sqlite3
 import os
+import pandas as pd
 from datetime import datetime
 from config import DATABASE_PATH, DATA_DIR
 
@@ -194,6 +195,3 @@ def get_statistics():
     conn.close()
     return stats
 
-import pandas as pd
-
-init_db()
