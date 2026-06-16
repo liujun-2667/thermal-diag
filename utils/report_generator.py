@@ -1,0 +1,208 @@
+from fpdf import FPDF
+import os
+from datetime import datetime
+from PIL import Image
+import io
+
+class ThermalReport(FPDF):
+    def __init__(self, logo_path=None):
+        super().__init__()
+        self.logo_path = logo_path
+        self.set_auto_page_break(auto=True, margin=15)
+    
+    def header(self):
+        if self.logo_path and os.path.exists(self.logo_path):
+            self.image(self.logo_path, 10, 8, 33)
+        
+        self.set_font('Arial', 'B', 16)
+        self.cell(0, 10, '电力设备红外热像分析报告', 0, 1, 'C')
+        self.set_font('Arial', '', 10)
+        self.cell(0, 5, f'报告生成时间: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}', 0, 1, 'R')
+        self.ln(10)
+    
+    def footer(self):
+        self.set_y(-15)
+        self.set_font('Arial', 'I', 8)
+        self.cell(0, 10, f'第 {self.page_no()} 页', 0, 0, 'C')
+    
+    def add_device_info(self, info):
+        self.set_font('Arial', 'B', 12)
+        self.cell(0, 10, '设备基本信息', 0, 1)
+        self.set_font('Arial', '', 10)
+        
+        info_lines = [
+            f"设备名称: {info.get('device_name', '')}",
+            f"设备类型: {info.get('device_type', '')}",
+            f"安装位置: {info.get('location', '')}",
+            f"拍摄时间: {info.get('capture_time', '')}",
+            f"环境温度: {info.get('ambient_temp', '')}°C",
+            f"负荷率: {info.get('load_rate', '')}%"
+        ]
+        
+        for line in info_lines:
+            self.cell(0, 6, line, 0, 1)
+        self.ln(5)
+    
+    def add_image(self, image_path, labeled=False):
+        self.set_font('Arial', 'B', 12)
+        title = '标注热像图' if labeled else '红外热像原图'
+        self.cell(0, 10, title, 0, 1)
+        
+        if os.path.exists(image_path):
+            img = Image.open(image_path)
+            img_width, img_height = img.size
+            max_width = self.w - 40
+            max_height = 150
+            
+            ratio = min(max_width / img_width, max_height / img_height)
+            new_width = img_width * ratio
+            new_height = img_height * ratio
+            
+            self.image(image_path, x=(self.w - new_width) / 2, w=new_width)
+            self.ln(new_height + 5)
+    
+    def add_temp_stats(self, stats):
+        self.set_font('Arial', 'B', 12)
+        self.cell(0, 10, '温度分布统计', 0, 1)
+        self.set_font('Arial', '', 10)
+        
+        stats_lines = [
+            f"最高温度 (Tmax): {stats.get('tmax', ''):.1f}°C",
+            f"最低温度 (Tmin): {stats.get('tmin', ''):.1f}°C",
+            f"平均温度 (Tavg): {stats.get('tavg', ''):.1f}°C",
+            f"温升 (ΔT): {stats.get('delta_t', ''):.1f}K"
+        ]
+        
+        for line in stats_lines:
+            self.cell(0, 6, line, 0, 1)
+        self.ln(5)
+    
+    def add_diagnosis(self, diagnosis):
+        self.set_font('Arial', 'B', 12)
+        self.cell(0, 10, '缺陷判定结论', 0, 1)
+        self.set_font('Arial', '', 10)
+        
+        self.cell(0, 6, f"缺陷等级: {diagnosis.get('defect_level', '')}", 0, 1)
+        self.cell(0, 6, f"判定依据: {diagnosis.get('criteria', '')}", 0, 1)
+        self.cell(0, 6, f"建议处理措施: {diagnosis.get('recommendation', '')}", 0, 1)
+        self.cell(0, 6, f"建议处理时限: {diagnosis.get('time_limit', '')}", 0, 1)
+        self.ln(5)
+    
+    def add_hotspots(self, hotspots):
+        if not hotspots:
+            return
+        
+        self.set_font('Arial', 'B', 12)
+        self.cell(0, 10, '热点区域信息', 0, 1)
+        self.set_font('Arial', '', 10)
+        
+        for i, hotspot in enumerate(hotspots, 1):
+            self.cell(0, 6, f"热点 {i}:", 0, 1)
+            self.cell(0, 6, f"  中心坐标: ({hotspot.get('center', (0, 0))[0]}, {hotspot.get('center', (0, 0))[1]})", 0, 1)
+            self.cell(0, 6, f"  面积占比: {hotspot.get('area_ratio', 0):.2f}%", 0, 1)
+            self.cell(0, 6, f"  最高温度: {hotspot.get('max_temp', 0):.1f}°C", 0, 1)
+            self.cell(0, 6, f"  平均温度: {hotspot.get('avg_temp', 0):.1f}°C", 0, 1)
+        self.ln(5)
+    
+    def add_trend_history(self, history):
+        if not history or len(history) < 2:
+            return
+        
+        self.set_font('Arial', 'B', 12)
+        self.cell(0, 10, '历史趋势对比(最近5次)', 0, 1)
+        self.set_font('Arial', '', 10)
+        
+        self.cell(20, 6, '序号', 1, 0, 'C')
+        self.cell(35, 6, '检测时间', 1, 0, 'C')
+        self.cell(25, 6, '温升(K)', 1, 0, 'C')
+        self.cell(30, 6, '缺陷等级', 1, 1, 'C')
+        
+        recent_history = history[-5:]
+        for i, record in enumerate(reversed(recent_history), 1):
+            self.cell(20, 6, str(i), 1, 0, 'C')
+            self.cell(35, 6, record.get('capture_time', '')[:19], 1, 0)
+            self.cell(25, 6, f"{record.get('delta_t', 0):.1f}", 1, 0, 'C')
+            self.cell(30, 6, record.get('defect_level', ''), 1, 1, 'C')
+        self.ln(5)
+
+def generate_report(image_data, history=None, logo_path=None, output_path=None):
+    report = ThermalReport(logo_path)
+    report.add_page()
+    
+    report.add_device_info(image_data)
+    report.add_image(image_data.get('image_path', ''))
+    report.add_temp_stats({
+        'tmax': image_data.get('tmax'),
+        'tmin': image_data.get('tmin'),
+        'tavg': image_data.get('tavg'),
+        'delta_t': image_data.get('delta_t')
+    })
+    
+    hotspots = image_data.get('hotspots')
+    if hotspots:
+        import json
+        try:
+            hotspots = json.loads(hotspots)
+        except:
+            hotspots = None
+    report.add_hotspots(hotspots)
+    
+    diagnosis = {
+        'defect_level': image_data.get('defect_level'),
+        'criteria': image_data.get('diagnosis_result'),
+        'recommendation': image_data.get('recommendation'),
+        'time_limit': image_data.get('time_limit')
+    }
+    report.add_diagnosis(diagnosis)
+    
+    if history is not None:
+        report.add_trend_history(history)
+    
+    if output_path is None:
+        output_path = os.path.join('reports', f"report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf")
+    
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    report.output(output_path)
+    return output_path
+
+def generate_batch_report(images_data, logo_path=None, output_path=None):
+    report = ThermalReport(logo_path)
+    
+    for i, image_data in enumerate(images_data, 1):
+        report.add_page()
+        report.set_font('Arial', 'B', 14)
+        report.cell(0, 10, f'=== 第 {i} 份检测报告 ===', 0, 1, 'C')
+        report.ln(5)
+        
+        report.add_device_info(image_data)
+        report.add_image(image_data.get('image_path', ''))
+        report.add_temp_stats({
+            'tmax': image_data.get('tmax'),
+            'tmin': image_data.get('tmin'),
+            'tavg': image_data.get('tavg'),
+            'delta_t': image_data.get('delta_t')
+        })
+        
+        hotspots = image_data.get('hotspots')
+        if hotspots:
+            import json
+            try:
+                hotspots = json.loads(hotspots)
+            except:
+                hotspots = None
+        report.add_hotspots(hotspots)
+        
+        diagnosis = {
+            'defect_level': image_data.get('defect_level'),
+            'criteria': image_data.get('diagnosis_result'),
+            'recommendation': image_data.get('recommendation'),
+            'time_limit': image_data.get('time_limit')
+        }
+        report.add_diagnosis(diagnosis)
+    
+    if output_path is None:
+        output_path = os.path.join('reports', f"batch_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf")
+    
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    report.output(output_path)
+    return output_path
